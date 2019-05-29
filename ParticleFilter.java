@@ -1,13 +1,19 @@
 import java.lang.Math;
-import java.util.Scanner;
+import java.util.*;
 public class ParticleFilter {
     //获取fingerprint,目前是二维的地图，依据实际可扩展为三维地图
     public double[][] getFingerprint(){
-        double[][] finger = {{0,0,0,0,0,0,0,0,0,0.4},
+        /*double[][] finger = {{0,0,0,0,0,0,0,0,0,0.4},
                 {76.4,0,0.2,0,0,77.2,65.2,0,0,0},
                 {75.8,0,0,2,0,62.2,0,0,48.4,31.2},
                 {73.8,79.4,78.8,0,58,78.8,37.6,77.8,65.2,74.4},
-                {0,76,77.8,45.6,3,22.6,79.2,72.2,46.4,78.4}};
+                {0,76,77.8,45.6,3,22.6,79.2,72.2,46.4,78.4}};*/
+        double[][] finger = new double[1000][1000];
+        for(int i=0;i<100;i++)
+            for(int j=0;j<100;j++)
+            {
+                finger[i][j] = new Random().nextInt(100);
+            }
         return finger;
     }
     //初始化粒子,全局均匀分布
@@ -50,11 +56,19 @@ public class ParticleFilter {
                         p[i][j].setPRR(finger[x][y]);
                     }
                     double weight;
+                    double denominator = PRR>lastPRR?PRR:lastPRR;
+                    if(denominator==0){
+                        denominator = 1;
+                    }
                     double a = p[i][j].PRR-p[i][j].lastPRR;
                     double b = PRR-lastPRR;
-                    weight = 1-Math.abs(a-b)/100;//权重计算方式待优化
+                    weight = 1-Math.abs(a-b)/denominator;//权重计算方式待优化
+                    if(Math.abs(p[i][j].PRR-PRR)>20){
+                        weight *= 0.5;
+                    }
                     weight += p[i][j].weight;
                     p[i][j].setWeight(weight);
+
                     if(weight>weight_MAX)
                         weight_MAX = weight;
                 }
@@ -66,7 +80,7 @@ public class ParticleFilter {
     }
     //粒子重采样
     public particle[][] reSample(particle[][] p,int time){
-        double threshold = 0.5;//过滤低权重粒子
+        double threshold = 0.75;//过滤低权重粒子
         double[][] finger = this.getFingerprint();
         int line = finger.length;
         int col = finger[0].length;
@@ -91,6 +105,7 @@ public class ParticleFilter {
         for(int i=0;i<line;i++){
             for(int j=0;j<col;j++){
                 if(state[i][j]>0){
+                    //System.out.println("The possible position is i="+i+",j="+j+",weight="+state[i][j]);
                     for(int k=0;k<pt[0].length;k++){
                         pt[index][k] = new particle();
                         pt[index][k].setPosition(i,j);
